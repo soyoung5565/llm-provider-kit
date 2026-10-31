@@ -1,7 +1,7 @@
 # llm-provider-kit
 
-> 可复用的 LLM 接入工具集：**多供应商 Provider 定义** · **Anthropic 兼容端点适配** · **有界并发执行器** · **Windows 安全原子写**。
-> *A reusable toolkit for wiring up LLM providers: provider metadata, Anthropic-compatible auth, bounded concurrency, and Windows-safe atomic writes.*
+> 做 AI 应用时几乎每个项目都会踩的四类坑，我把它抽成了一个零依赖的 TypeScript 工具库。
+> *Four problems every LLM app hits — packaged as a zero-dependency TypeScript toolkit.*
 
 [![npm](https://img.shields.io/badge/npm-llm--provider--kit-7F52FF?logo=npm&logoColor=white)](https://www.npmjs.com/package/llm-provider-kit)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -12,7 +12,7 @@
 
 ## 📖 这是什么
 
-做 AI 应用时，有四类问题几乎每个项目都会踩到，且**解法高度通用**：
+接 LLM 时，有四类问题解法高度通用，但每次新项目都要重写一遍。这个库把它们收在一起：
 
 | 问题 | 典型症状 | 本库的做法 |
 |---|---|---|
@@ -21,8 +21,7 @@
 | **批量调用** | 串行 await 太慢，全并发会打爆限流 | 固定数量的 worker 抢任务队列的有界并发池 |
 | **状态落盘** | Windows 上 `fs.rename` 偶发 EPERM/EACCES/EBUSY | 带线性退避的原子写，只重试"文件被占用"类错误 |
 
-这四块能力最初是从我给 [THU-MAIC](https://github.com/THU-MAIC/OpenMAIC) 做的贡献里提炼出来的，
-后来发现每次新项目都要重写一遍，于是抽成了这个独立库。
+**零运行时依赖**，Node ≥ 18，`strict` + `noUncheckedIndexedAccess` 类型检查，**44 个测试用例**。
 
 ---
 
@@ -62,7 +61,7 @@ shouldUseOpenAIStreamingChatCompat('openai', 'gpt-4o');            // true → �
 import { buildAnthropicHeaders } from 'llm-provider-kit';
 
 buildAnthropicHeaders({
-  apiKey: process.env.ANTHROPIC_KEY!,
+  apiKey: 'sk-...',
   baseUrl: 'https://api.minimaxi.com/anthropic',
 });
 // → { 'X-Api-Key': '...', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
@@ -142,12 +141,12 @@ npm run build     # 产出 dist/（含 .d.ts 与 source map）
 
 测试覆盖的关键行为：
 
-| 文件 | 覆盖内容 |
-|---|---|
-| `test/providers.test.ts` | Provider 注册表完整性、端点路由规则、**两个路由谓词互斥**、能力推导 |
-| `test/compat.test.ts` | 鉴权方式自动判定、请求头构造、密钥不泄漏到非鉴权头 |
-| `test/concurrency.test.ts` | 并发上限不被突破、**结果顺序与完成顺序解耦**、失败隔离、`env` 解析兜底 |
-| `test/fs.test.ts` | 原子写正确性、目录自动创建、无临时文件残留、非重试错误立即抛出 |
+| 文件 | 用例 | 覆盖内容 |
+|---|---|---|
+| `test/providers.test.ts` | 13 | Provider 注册表完整性、端点路由规则、**两个路由谓词互斥**、能力推导 |
+| `test/compat.test.ts` | 10 | 鉴权方式自动判定、请求头构造、密钥不泄漏到非鉴权头 |
+| `test/concurrency.test.ts` | 11 | 并发上限不被突破、**结果顺序与完成顺序解耦**、失败隔离、`env` 解析兜底 |
+| `test/fs.test.ts` | 10 | 原子写正确性、目录自动创建、无临时文件残留、非重试错误立即抛出 |
 
 ---
 
@@ -171,20 +170,13 @@ test/                     # vitest，44 个用例
 
 ---
 
-## 🔗 与上游项目的关系
+## 📖 来源说明
 
-本库的四个能力最初来自我为 **[THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)**
-（清华多智能体课堂）提交的贡献分支。原仓库是大型 Next.js 应用，直接 fork 整个仓库
-对使用者没有价值，因此把这几块**可独立复用**的逻辑重写并抽成这个库。
+这个库里的四个能力，最初是我在一个大型 Next.js 多智能体课堂项目（[THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)，MIT）上做适配时写的。那边的对应改动是 **1 个 commit / 8 文件 / +96 −10 行**；原仓库是 4 万+ star 的大项目，直接 fork 整个仓库对"只想复用这四个能力"的人没有价值，所以我把它们**重写并抽成了这个独立库** —— 补了完整类型定义、模块化导出、**44 个测试用例**，以及两个路由谓词的互斥性保证。
 
-| 本库模块 | 上游对应改动 |
-|---|---|
-| `providers` | 新增 NVIDIA NIM provider + Kimi K3 模型元数据；muse-spark 走 Responses API |
-| `compat` | MiniMax anthropic-compat 端点需 `X-Api-Key` 头 |
-| `concurrency` | TTS 并行生成（`TTS_CONCURRENCY`，默认 4） |
-| `fs` | Windows 上原子重命名的 EPERM/EACCES/EBUSY 退避重试 |
+改动记录与可 apply 的上游补丁在 **[soyoung5565/openmaic-contribution](https://github.com/soyoung5565/openmaic-contribution)**。
 
-上游仓库采用 MIT 协议，本库同样以 MIT 发布。
+上游采用 MIT 协议，本库同样以 MIT 发布。
 
 ---
 
