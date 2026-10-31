@@ -1,0 +1,62 @@
+{
+  "name": "llm-provider-kit",
+  "version": "1.0.0",
+  "description": "可复用的 LLM 接入工具集：多供应商 Provider 定义、Anthropic 兼容端点适配、有界并发池、Windows 安全原子写。",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js"
+    },
+    "./compat": {
+      "types": "./dist/compat/index.d.ts",
+      "import": "./dist/compat/index.js"
+    },
+    "./concurrency": {
+      "types": "./dist/concurrency/index.d.ts",
+      "import": "./dist/concurrency/index.js"
+    },
+    "./fs": {
+      "types": "./dist/fs/index.d.ts",
+      "import": "./dist/fs/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "llm",
+    "provider",
+    "nvidia-nim",
+    "anthropic",
+    "concurrency",
+    "windows",
+    "fs"
+  ],
+  "author": "soyoung5565",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
